@@ -6,6 +6,7 @@ in OpenAI's Gymnasium
 import argparse
 import gymnasium as gym
 import torch
+from a2c import A2CAgent
 from base_agent import BaseAgent
 from vpg import VPGAgent
 
@@ -19,10 +20,22 @@ def get_args():
         "--env_name", help="environment to instantiate", type=str, default="Hopper-v5"
     )
     parser.add_argument(
-        "--collection_steps",
-        help="number of steps to run environment before doing an update",
+        "--batch_size",
+        help="number of steps to run environment before doing a training step",
         type=int,
-        default=2_046,
+        default=8_192,
+    )
+    parser.add_argument(
+        "--minibatch_size",
+        help="minibatch size during each update step",
+        type=int,
+        default=256,
+    )
+    parser.add_argument(
+        "--num_updates",
+        help="number of update steps per training step",
+        type=int,
+        default=100,
     )
     parser.add_argument(
         "--total_steps",
@@ -56,9 +69,15 @@ def main() -> None:
     render_mode = "human" if args.render else None
     env = gym.make(args.env_name, render_mode=render_mode)
 
-    agent_class= eval(args.agent_name)
+    agent_class = eval(args.agent_name)
     agent: BaseAgent = agent_class(
-        env, learning_rate=args.learning_rate, gamma=args.gamma, device=device
+        env,
+        batch_size=args.batch_size,
+        minibatch_size=args.minibatch_size,
+        num_updates=args.num_updates,
+        learning_rate=args.learning_rate,
+        gamma=args.gamma,
+        device=device,
     )
 
     state, _ = env.reset()
@@ -71,7 +90,7 @@ def main() -> None:
 
         if terminated or truncated:
             agent.handle_episode_ending(terminated, truncated)
-            if batch_counter >= args.collection_steps:
+            if batch_counter >= args.batch_size:
                 agent.update()
                 batch_counter = 0
             state, _ = env.reset()

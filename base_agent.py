@@ -1,5 +1,6 @@
 import gymnasium as gym
 import numpy as np
+import time
 import torch
 from copy import deepcopy
 from utils import safe_concat
@@ -7,8 +8,20 @@ from utils import safe_concat
 
 class BaseAgent:
     def __init__(
-        self, env: gym.Env, learning_rate: float, gamma: float, device: torch.device
+        self,
+        env: gym.Env,
+        batch_size: int,
+        minibatch_size: int,
+        num_updates: int,
+        learning_rate: float,
+        gamma: float,
+        device: torch.device,
     ) -> None:
+        self.clock = time.time()
+        self.env_name = env.unwrapped.spec.id
+        self.batch_size = batch_size
+        self.minibatch_size = minibatch_size
+        self.num_updates = num_updates
         self.learning_rate = learning_rate
         self.gamma = gamma
         self.device = device
@@ -16,6 +29,8 @@ class BaseAgent:
         self.action_dim = env.action_space.shape[0]
         self.reset_episode_buffer()
         self.reset_learning_buffer()
+        self.update_counter = 0
+        self.step_counter = 0
 
     def reset_episode_buffer(self) -> None:
         self.episode_buffer = [
@@ -95,3 +110,6 @@ class BaseAgent:
     def update(self) -> None:
         # NOTE: this function should be implemented in the child class
         raise NotImplementedError
+
+    def get_average_episode_return(self) -> float:
+        return sum(self.episode_returns) / len(self.episode_returns)
