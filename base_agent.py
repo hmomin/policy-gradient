@@ -91,3 +91,7 @@ class BaseAgent:
             discounted_returns[t, :] = episode_rewards[t, :] + self.gamma * value_next
             value_next = discounted_returns[t, :]
         return discounted_returns
+
+    def update(self) -> None:
+        # NOTE: this function should be implemented in the child class
+        raise NotImplementedError

@@ -1,4 +1,5 @@
 import gymnasium as gym
+import os
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -11,8 +12,10 @@ class VPGAgent(BaseAgent):
     def __init__(
         self, env: gym.Env, learning_rate: float, gamma: float, device: torch.device
     ) -> None:
+        self.env_name = env.unwrapped.spec.id
         super().__init__(env, learning_rate, gamma, device)
         self.update_counter = 0
+        self.step_counter = 0
         self.actor_log_sigma = nn.Parameter(
             torch.zeros(env.action_space.shape, dtype=torch.float32, device=self.device)
         )
@@ -26,6 +29,7 @@ class VPGAgent(BaseAgent):
             [*self.actor_network.parameters(), self.actor_log_sigma],
             lr=learning_rate,
         )
+        self.save(f"VPG_{self.env_name}_{self.update_counter}_{self.step_counter}")
 
     def update(self) -> None:
         (
@@ -46,6 +50,11 @@ class VPGAgent(BaseAgent):
         )
         self.reset_learning_buffer()
         self.update_counter += 1
+        self.step_counter += batch_states.shape[0]
+        if self.update_counter % 10 == 0:
+            self.save(
+                f"vpg_agent_{self.env_name}_{self.update_counter}_{self.step_counter}"
+            )
 
     def get_average_episode_return(self) -> float:
         return sum(self.episode_returns) / len(self.episode_returns)
@@ -54,3 +63,15 @@ class VPGAgent(BaseAgent):
         self.optimizer.zero_grad()
         loss.backward()
         self.optimizer.step()
+
+    def save(self, path: str) -> None:
+        if not os.path.exists("models"):
+            os.mkdir("models")
+        save_path = os.path.join("models", f"{path}.pt")
+        torch.save(
+            {
+                "actor_network": self.actor_network.state_dict(),
+                "actor_log_sigma": self.actor_log_sigma,
+            },
+            save_path,
+        )

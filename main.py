@@ -6,6 +6,7 @@ in OpenAI's Gymnasium
 import argparse
 import gymnasium as gym
 import torch
+from base_agent import BaseAgent
 from vpg import VPGAgent
 
 
@@ -55,7 +56,8 @@ def main() -> None:
     render_mode = "human" if args.render else None
     env = gym.make(args.env_name, render_mode=render_mode)
 
-    agent = VPGAgent(
+    agent_class= eval(args.agent_name)
+    agent: BaseAgent = agent_class(
         env, learning_rate=args.learning_rate, gamma=args.gamma, device=device
     )
 
