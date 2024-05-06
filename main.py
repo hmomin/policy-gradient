@@ -1,6 +1,5 @@
 """
-Trains an Agent With Stochastic Policy Gradient Ascent to Solve Mujoco Environments
-in OpenAI's Gymnasium
+Trains an Agent to Solve Mujoco Environment in OpenAI's Gymnasium
 """
 
 import argparse
