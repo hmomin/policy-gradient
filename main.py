@@ -8,16 +8,17 @@ import gymnasium as gym
 import torch
 from a2c import A2CAgent
 from base_agent import BaseAgent
+from ppo import PPOAgent
 from vpg import VPGAgent
 
 
 def get_args():
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "--agent_name", help="agent to instantiate", type=str, default="VPGAgent"
+        "--agent_name", help="agent to instantiate", type=str, required=True
     )
     parser.add_argument(
-        "--env_name", help="environment to instantiate", type=str, default="Hopper-v5"
+        "--env_name", help="environment to instantiate", type=str, default="HalfCheetah-v5"
     )
     parser.add_argument(
         "--batch_size",
@@ -35,13 +36,13 @@ def get_args():
         "--num_updates",
         help="number of update steps per training step",
         type=int,
-        default=100,
+        default=32,
     )
     parser.add_argument(
         "--total_steps",
         help="total number of steps to run environment",
         type=int,
-        default=1_000_000,
+        default=9_009_000,
     )
     parser.add_argument(
         "--learning_rate",

@@ -44,7 +44,9 @@ class A2CAgent(BaseAgent):
             self.critic_network.parameters(),
             lr=learning_rate,
         )
-        self.save(f"VPG_{self.env_name}_{self.update_counter}_{self.step_counter}")
+        self.save(
+            f"{self.__class__.__name__}_{self.env_name}_{self.update_counter}_{self.step_counter}"
+        )
 
     def update(self) -> None:
         (
@@ -64,13 +66,15 @@ class A2CAgent(BaseAgent):
             self.update_critic(minibatch_states, minibatch_returns)
             self.update_actor(minibatch_states, minibatch_actions, minibatch_returns)
         print(
-            f"Update {self.update_counter:7d} | average return: {self.get_average_episode_return():6.2f} | average stdev: {torch.mean(torch.exp(self.actor_log_sigma)).item():7.6f}"
+            f"Update {self.update_counter:7d} | Step {self.step_counter:8d} | average return: {self.get_average_episode_return():6.2f} | average stdev: {torch.mean(torch.exp(self.actor_log_sigma)).item():7.6f}"
         )
-        self.reset_learning_buffer()
         self.update_counter += 1
         self.step_counter += batch_states.shape[0]
         if self.update_counter % 10 == 0:
-            self.save(f"A2C_{self.env_name}_{self.update_counter}_{self.step_counter}")
+            self.save(
+                f"{self.__class__.__name__}_{self.env_name}_{self.update_counter}_{self.step_counter}"
+            )
+        self.reset_learning_buffer()
 
     def update_critic(
         self, batch_states: torch.Tensor, batch_returns: torch.Tensor
@@ -90,7 +94,7 @@ class A2CAgent(BaseAgent):
     ) -> None:
         log_probs = self.get_log_probs(batch_states, batch_actions)
         advantages = self.compute_advantages(batch_states, batch_returns)
-        actor_loss = torch.neg(torch.sum(log_probs * advantages.squeeze()))
+        actor_loss = -torch.mean(log_probs * advantages.squeeze())
         self.actor_optimizer.zero_grad()
         actor_loss.backward()
         self.actor_optimizer.step()
