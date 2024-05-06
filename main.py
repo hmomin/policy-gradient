@@ -18,7 +18,10 @@ def get_args():
         "--agent_name", help="agent to instantiate", type=str, required=True
     )
     parser.add_argument(
-        "--env_name", help="environment to instantiate", type=str, default="HalfCheetah-v5"
+        "--env_name",
+        help="environment to instantiate",
+        type=str,
+        default="HalfCheetah-v5",
     )
     parser.add_argument(
         "--batch_size",
