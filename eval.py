@@ -9,6 +9,7 @@ import multiprocessing
 import os
 import torch
 import torch.nn as nn
+from base_agent import BaseAgent
 from glob import glob
 from network import Network
 from pprint import pprint
@@ -28,6 +29,11 @@ def get_args():
         help="number of episodes to evaluate the model",
         type=int,
         default=10,
+    )
+    parser.add_argument(
+        "--mp",
+        help="whether or not to use multiprocessing to evaluate the model",
+        action="store_true",
     )
     parser.add_argument(
         "--render",
@@ -56,7 +62,7 @@ def load_agent(env: gym.Env, model_dir: str, device: torch.device) -> Network:
     return actor
 
 
-def evaluate_episode(
+def evaluate_episode_mp(
     env_name: str,
     agent_name: str,
     device: torch.device,
@@ -65,6 +71,16 @@ def evaluate_episode(
 ) -> None:
     env = gym.make(env_name, render_mode=render_mode)
     agent = load_agent(env, agent_name, device)
+    evaluate_episode_sequential(env, agent, device, episode_returns)
+    env.close()
+
+
+def evaluate_episode_sequential(
+    env: gym.Env,
+    agent: BaseAgent,
+    device: torch.device,
+    episode_returns: list,
+) -> None:
     episode_return = 0.0
     state, _ = env.reset()
     done = False
@@ -75,7 +91,6 @@ def evaluate_episode(
         done = terminated or truncated
         episode_return += reward
     episode_returns.append(episode_return)
-    env.close()
 
 
 def main() -> None:
@@ -91,18 +106,27 @@ def main() -> None:
         manager = multiprocessing.Manager()
         episode_returns = manager.list()
 
-        processes: list[multiprocessing.Process] = []
+        if args.mp:
+            processes: list[multiprocessing.Process] = []
+            for _ in range(args.num_evals):
+                process = multiprocessing.Process(
+                    target=evaluate_episode_mp,
+                    args=(env_name, agent_name, device, render_mode, episode_returns),
+                )
+                processes.append(process)
+                process.start()
+                if args.render:
+                    process.join()
 
-        for _ in range(args.num_evals):
-            process = multiprocessing.Process(
-                target=evaluate_episode,
-                args=(env_name, agent_name, device, render_mode, episode_returns),
-            )
-            processes.append(process)
-            process.start()
-
-        for process in processes:
-            process.join()
+            if not args.render:
+                for process in processes:
+                    process.join()
+        else:
+            env = gym.make(env_name, render_mode=render_mode)
+            agent = load_agent(env, agent_name, device)
+            for _ in range(args.num_evals):
+                evaluate_episode_sequential(env, agent, device, episode_returns)
+            env.close()
 
         performance_dict[agent_name] = list(episode_returns)
     json.dump(performance_dict, open("performance.json", "w"))

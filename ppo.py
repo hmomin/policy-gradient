@@ -1,11 +1,6 @@
 import gymnasium as gym
-import os
 import torch
-import torch.nn as nn
-import torch.optim as optim
 from a2c import A2CAgent
-from network import Network
-from torch.distributions import Normal
 
 
 class PPOAgent(A2CAgent):
